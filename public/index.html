@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Passlock</title>
+</head>
+<body>
+
+<h2>🔒 Passlock</h2>
+
+<input id="email" placeholder="Email"><br><br>
+<input id="password" placeholder="Password"><br><br>
+<input id="hours" placeholder="Hours"><br><br>
+
+<label>
+<input type="checkbox" id="nextDay"> Next day 12 AM
+</label><br><br>
+
+<button onclick="login()">Login</button>
+<button onclick="save()">Save</button>
+<button onclick="get()">View</button>
+
+<p id="result"></p>
+
+<script>
+let userEmail = "";
+
+async function login() {
+    userEmail = document.getElementById("email").value;
+
+    await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ email: userEmail })
+    });
+
+    alert("Logged in");
+}
+
+async function save() {
+    const password = document.getElementById("password").value;
+    const hours = parseInt(document.getElementById("hours").value) || 0;
+    const nextDay = document.getElementById("nextDay").checked;
+
+    await fetch("/save", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+            email: userEmail,
+            password,
+            hours,
+            nextDay
+        })
+    });
+
+    alert("Saved & Locked");
+}
+
+async function get() {
+    const res = await fetch("/get", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ email: userEmail })
+    });
+
+    const data = await res.json();
+
+    if (data.locked) {
+        const hrs = Math.floor(data.remaining / 3600000);
+        document.getElementById("result").innerText =
+            "🔒 Locked: " + hrs + " hours left";
+    } else {
+        document.getElementById("result").innerText =
+            "✅ Password: " + data.password;
+    }
+}
+</script>
+
+</body>
+</html>
