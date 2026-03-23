@@ -16,11 +16,21 @@ function saveData(data) {
     fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
-// SAVE (GLOBAL)
+// SAVE (LOCK SYSTEM)
 app.post("/save", (req, res) => {
     const { password, hours, minutes, nextDay } = req.body;
 
+    const existing = loadData();
     const now = Date.now();
+
+    // 🔒 Prevent overwrite
+    if (existing.unlockTime && now < existing.unlockTime) {
+        return res.send({
+            success: false,
+            message: "Already locked"
+        });
+    }
+
     let unlockTime;
 
     if (nextDay) {
@@ -48,7 +58,7 @@ app.post("/save", (req, res) => {
     });
 });
 
-// GET PASSWORD
+// GET STATUS
 app.get("/get", (req, res) => {
     const data = loadData();
 
