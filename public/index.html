@@ -16,15 +16,17 @@
 <input type="checkbox" id="nextDay"> Unlock next day at 12 AM
 </label><br><br>
 
-<button onclick="save()">Save</button>
-<button onclick="check()">Check Status</button>
+<button id="saveBtn" onclick="save()">Save</button>
 
 <p id="result"></p>
 
 <script>
 
+// SAVE
 async function save() {
-    const password = document.getElementById("password").value;
+    const passwordInput = document.getElementById("password");
+    const password = passwordInput.value;
+
     const hours = parseInt(document.getElementById("hours").value) || 0;
     const minutes = parseInt(document.getElementById("minutes").value) || 0;
     const nextDay = document.getElementById("nextDay").checked;
@@ -37,27 +39,52 @@ async function save() {
 
     const data = await res.json();
 
+    if (!data.success) {
+        document.getElementById("result").innerText =
+            "❌ Already locked. Cannot change until unlock.";
+        return;
+    }
+
     const unlockDate = new Date(data.unlockTime);
+
+    // 🔒 Hide password
+    passwordInput.value = "";
+    passwordInput.style.display = "none";
+
+    document.getElementById("saveBtn").disabled = true;
 
     document.getElementById("result").innerText =
         "🔒 Locked until: " + unlockDate.toLocaleString();
 }
 
-async function check() {
+// CHECK STATUS (AUTO)
+async function checkStatus() {
     const res = await fetch("/get");
     const data = await res.json();
 
+    const passwordInput = document.getElementById("password");
+    const saveBtn = document.getElementById("saveBtn");
+
     if (data.locked) {
+        passwordInput.style.display = "none";
+        saveBtn.disabled = true;
+
         const hrs = Math.floor(data.remaining / 3600000);
         const mins = Math.floor((data.remaining % 3600000) / 60000);
 
         document.getElementById("result").innerText =
             "🔒 Locked: " + hrs + "h " + mins + "m remaining";
     } else {
+        passwordInput.style.display = "block";
+        saveBtn.disabled = false;
+
         document.getElementById("result").innerText =
             "✅ Password: " + data.password;
     }
 }
+
+// AUTO RUN
+window.onload = checkStatus;
 
 </script>
 
