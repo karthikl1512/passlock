@@ -16,21 +16,9 @@ function saveData(data) {
     fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
-app.post("/login", (req, res) => {
-    const { email } = req.body;
-    const data = loadData();
-
-    if (!data[email]) {
-        data[email] = {};
-        saveData(data);
-    }
-
-    res.send({ success: true });
-});
-
+// SAVE (GLOBAL)
 app.post("/save", (req, res) => {
-    const { email, password, hours, nextDay } = req.body;
-    const data = loadData();
+    const { password, hours, minutes, nextDay } = req.body;
 
     const now = Date.now();
     let unlockTime;
@@ -41,36 +29,48 @@ app.post("/save", (req, res) => {
         d.setHours(0, 0, 0, 0);
         unlockTime = d.getTime();
     } else {
-        unlockTime = now + hours * 3600000;
+        unlockTime =
+            now +
+            (hours * 60 * 60 * 1000) +
+            (minutes * 60 * 1000);
     }
 
-    data[email] = { password, unlockTime };
+    const data = {
+        password,
+        unlockTime
+    };
+
     saveData(data);
 
-    res.send({ success: true });
+    res.send({
+        success: true,
+        unlockTime
+    });
 });
 
-app.post("/get", (req, res) => {
-    const { email } = req.body;
+// GET PASSWORD
+app.get("/get", (req, res) => {
     const data = loadData();
 
-    if (!data[email]) {
-        return res.send({ error: "No data" });
+    if (!data.password) {
+        return res.send({ error: "No password set" });
     }
 
     const now = Date.now();
 
-    if (now < data[email].unlockTime) {
+    if (now < data.unlockTime) {
         return res.send({
             locked: true,
-            remaining: data[email].unlockTime - now
+            remaining: data.unlockTime - now,
+            unlockTime: data.unlockTime
         });
     }
 
     res.send({
         locked: false,
-        password: data[email].password
+        password: data.password
     });
 });
 
-app.listen(3000, () => console.log("Server running"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on port " + PORT));
